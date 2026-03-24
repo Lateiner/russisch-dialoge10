@@ -1,0 +1,273 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Verständnisfragen: В парикмахерской</title>
+    <style>
+        :root {
+            --primary-color: #4a90e2;
+            --success-color: #48bb78;
+            --error-color: #f56565;
+            --bg-color: #f7fafc;
+            --text-color: #2d3748;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: var(--bg-color);
+            margin: 0;
+            display: flex;
+            justify-content: center;
+            padding: 10px;
+        }
+
+        .container {
+            width: 100%;
+            max-width: 700px;
+            background: white;
+            padding: 20px;
+            border-radius: 15px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+        }
+
+        h1 {
+            text-align: center;
+            color: var(--primary-color);
+            font-size: 1.4rem;
+            margin-bottom: 5px;
+        }
+
+        .instruction {
+            text-align: center;
+            font-size: 0.9rem;
+            color: #718096;
+            margin-bottom: 25px;
+        }
+
+        .question-box {
+            margin-bottom: 25px;
+            padding: 15px;
+            background: #edf2f7;
+            border-radius: 12px;
+        }
+
+        .question-text {
+            font-weight: bold;
+            font-size: 1.05rem;
+            margin-bottom: 15px;
+            color: var(--text-color);
+        }
+
+        .options-list {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .option-btn {
+            padding: 12px 15px;
+            border: 2px solid #cbd5e0;
+            border-radius: 8px;
+            background: white;
+            cursor: pointer;
+            text-align: left;
+            font-size: 0.95rem;
+            transition: all 0.2s;
+            font-style: normal;
+        }
+
+        .option-btn:hover:not(:disabled) {
+            border-color: var(--primary-color);
+            background-color: #f0f7ff;
+        }
+
+        /* Feedback Zustände */
+        .option-btn.correct {
+            background-color: var(--success-color) !important;
+            border-color: var(--success-color) !important;
+            color: white;
+        }
+
+        .option-btn.wrong {
+            background-color: var(--error-color) !important;
+            border-color: var(--error-color) !important;
+            color: white;
+        }
+
+        .controls {
+            display: flex;
+            gap: 10px;
+            margin-top: 30px;
+        }
+
+        .main-btn {
+            flex: 1;
+            padding: 14px;
+            border: none;
+            border-radius: 8px;
+            font-weight: bold;
+            cursor: pointer;
+            font-size: 1rem;
+        }
+
+        .btn-sol { background: #718096; color: white; }
+        .btn-res { background: #e2e8f0; color: var(--text-color); }
+
+        #final-score {
+            text-align: center;
+            margin-top: 20px;
+            font-weight: bold;
+            font-size: 1.1rem;
+        }
+
+        @media (max-width: 480px) {
+            .container { padding: 15px; }
+            .question-text { font-size: 1rem; }
+            .option-btn { font-size: 0.9rem; padding: 10px; }
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h1>Тест: В парикмахерской</h1>
+    <p class="instruction">Beantworten Sie die Fragen zum Dialog. Wählen Sie die richtige Antwort.</p>
+
+    <div id="quiz-content"></div>
+
+    <div id="final-score"></div>
+
+    <div class="controls">
+        <button class="main-btn btn-sol" onclick="showSolution()">Lösung anzeigen</button>
+        <button class="main-btn btn-res" onclick="initQuiz()">Neu starten</button>
+    </div>
+</div>
+
+<script>
+    const questions = [
+        {
+            q: "Зачем клиентка позвонила в парикмахерскую?",
+            options: ["Купить шампунь", "Записаться на стрижку", "Узнать адрес"],
+            correct: 1
+        },
+        {
+            q: "На какой день её записали?",
+            options: ["На пятницу", "На понедельник", "На среду"],
+            correct: 2
+        },
+        {
+            q: "В какое время у неё запись?",
+            options: ["В 15:30", "В 10:00", "В 18:45"],
+            correct: 0
+        },
+        {
+            q: "Какую стрижку выбрала клиентка?",
+            options: ["Пикси", "Каре", "Длинные волосы"],
+            correct: 1
+        },
+        {
+            q: "В какой цвет она хочет покраситься?",
+            options: ["В чёрный", "В каштановый", "В зелёный"],
+            correct: 1
+        },
+        {
+            q: "Что парикмахер делает в самом начале?",
+            options: ["Стрижёт кончики", "Моет голову", "Делает укладку"],
+            correct: 1
+        },
+        {
+            q: "Что приносит парикмахер, чтобы выбрать цвет?",
+            options: ["Журнал", "Палитру", "Зеркало"],
+            correct: 1
+        },
+        {
+            q: "Какую укладку сделала клиентка в конце?",
+            options: ["Локоны", "Косу", "Прямые волосы"],
+            correct: 2
+        }
+    ];
+
+    function initQuiz() {
+        const container = document.getElementById('quiz-content');
+        const scoreDiv = document.getElementById('final-score');
+        container.innerHTML = "";
+        scoreDiv.innerText = "";
+
+        questions.forEach((item, qIdx) => {
+            const qBox = document.createElement('div');
+            qBox.className = 'question-box';
+            
+            let optionsHtml = item.options.map((opt, optIdx) => `
+                <button class="option-btn" 
+                        onclick="checkAnswer(this, ${qIdx}, ${optIdx})"
+                        data-q="${qIdx}" data-opt="${optIdx}">
+                    ${opt}
+                </button>
+            `).join('');
+
+            qBox.innerHTML = `
+                <div class="question-text">${qIdx + 1}. ${item.q}</div>
+                <div class="options-list">${optionsHtml}</div>
+            `;
+            container.appendChild(qBox);
+        });
+    }
+
+    function checkAnswer(btn, qIdx, optIdx) {
+        const parent = btn.parentElement;
+        const buttons = parent.querySelectorAll('.option-btn');
+        
+        // Deaktiviere alle Buttons dieser Frage
+        buttons.forEach(b => b.disabled = true);
+
+        if (optIdx === questions[qIdx].correct) {
+            btn.classList.add('correct');
+        } else {
+            btn.classList.add('wrong');
+            // Zeige die richtige Antwort dezent an
+            buttons[questions[qIdx].correct].classList.add('correct');
+        }
+        updateScore();
+    }
+
+    function updateScore() {
+        const correctAnswers = document.querySelectorAll('.option-btn.correct:not([style*="display: none"])').length;
+        // Da wir bei Fehlern die richtige Antwort auch grün färben, zählen wir nur die vom User gewählten korrekten.
+        // Einfachere Logik:
+        let userCorrect = 0;
+        const boxes = document.querySelectorAll('.question-box');
+        boxes.forEach((box, idx) => {
+            const btns = box.querySelectorAll('.option-btn');
+            btns.forEach((b, bIdx) => {
+                if(b.classList.contains('correct') && !b.classList.contains('wrong') && b.disabled && b === event?.target) {
+                    // Diese Logik ist im Click-Event einfacher zu handhaben.
+                }
+            });
+        });
+        // Score-Anzeige basiert hier auf der Anzahl der beantworteten Fragen
+        const answered = document.querySelectorAll('.option-btn:disabled').length / 3;
+        if(answered === questions.length) {
+             document.getElementById('final-score').innerText = "Тест завершён!";
+        }
+    }
+
+    function showSolution() {
+        const boxes = document.querySelectorAll('.question-box');
+        boxes.forEach((box, qIdx) => {
+            const btns = box.querySelectorAll('.option-btn');
+            btns.forEach((btn, optIdx) => {
+                btn.disabled = true;
+                if (optIdx === questions[qIdx].correct) {
+                    btn.classList.add('correct');
+                }
+            });
+        });
+        document.getElementById('final-score').innerText = "Все правильные ответы показаны.";
+    }
+
+    initQuiz();
+</script>
+
+</body>
+</html>
