@@ -1,0 +1,304 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Hörverstehen: 8 Fragen mit Textanzeige</title>
+    <style>
+        :root {
+            --primary-color: #4a90e2;
+            --secondary-color: #718096;
+            --success-color: #48bb78;
+            --error-color: #f56565;
+            --bg-color: #f7fafc;
+            --text-color: #2d3748;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: var(--bg-color);
+            margin: 0;
+            display: flex;
+            justify-content: center;
+            padding: 10px;
+        }
+
+        .container {
+            width: 100%;
+            max-width: 700px;
+            background: white;
+            padding: 20px;
+            border-radius: 15px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+        }
+
+        h1 {
+            text-align: center;
+            color: var(--primary-color);
+            font-size: 1.4rem;
+            margin-bottom: 10px;
+        }
+
+        .instruction {
+            text-align: center;
+            font-size: 0.9rem;
+            color: #718096;
+            margin-bottom: 20px;
+        }
+
+        .question-card {
+            background: #edf2f7;
+            border-radius: 12px;
+            padding: 15px;
+            margin-bottom: 15px;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            border: 2px solid transparent;
+        }
+
+        .top-row {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .audio-btn {
+            background: var(--primary-color);
+            color: white;
+            border: none;
+            width: 45px;
+            height: 45px;
+            border-radius: 50%;
+            cursor: pointer;
+            font-size: 1.1rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+        }
+
+        .show-text-btn {
+            background: var(--secondary-color);
+            color: white;
+            border: none;
+            padding: 8px 15px;
+            border-radius: 20px;
+            cursor: pointer;
+            font-size: 0.85rem;
+            font-weight: bold;
+        }
+
+        .sentence-display {
+            background: white;
+            padding: 10px;
+            border-radius: 8px;
+            border: 1px solid #cbd5e0;
+            font-size: 1rem;
+            display: none; /* Standardmäßig versteckt */
+            font-style: normal; /* Keine Kursivschrift */
+            color: var(--text-color);
+        }
+
+        .options {
+            display: flex;
+            gap: 10px;
+        }
+
+        .opt-btn {
+            flex: 1;
+            padding: 10px;
+            border: 2px solid #cbd5e0;
+            border-radius: 8px;
+            background: white;
+            font-weight: bold;
+            cursor: pointer;
+            font-size: 0.9rem;
+            transition: all 0.2s;
+        }
+
+        /* Feedback Farben */
+        .opt-btn.correct {
+            background-color: var(--success-color) !important;
+            border-color: var(--success-color);
+            color: white;
+        }
+
+        .opt-btn.wrong {
+            background-color: var(--error-color) !important;
+            border-color: var(--error-color);
+            color: white;
+        }
+
+        .controls {
+            display: flex;
+            gap: 10px;
+            margin-top: 25px;
+        }
+
+        .main-btn {
+            flex: 1;
+            padding: 14px;
+            border: none;
+            border-radius: 8px;
+            font-weight: bold;
+            cursor: pointer;
+            font-size: 0.95rem;
+        }
+
+        .btn-sol { background: #4a5568; color: white; }
+        .btn-res { background: #e2e8f0; color: var(--text-color); }
+
+        #score-summary {
+            text-align: center;
+            margin-top: 20px;
+            font-weight: bold;
+            font-size: 1.1rem;
+        }
+
+        @media (max-width: 480px) {
+            .question-card { padding: 10px; }
+            .opt-btn { font-size: 0.8rem; }
+            .show-text-btn { font-size: 0.75rem; }
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h1>Hörverstehen: В парикмахерской</h1>
+    <p class="instruction">Höre die Sätze und entscheide: ДА (Wahr) oder НЕТ (Falsch)?</p>
+
+    <div id="quiz-list"></div>
+
+    <div id="score-summary"></div>
+
+    <div class="controls">
+        <button class="main-btn btn-sol" onclick="showAllSolutions()">Lösung anzeigen</button>
+        <button class="main-btn btn-res" onclick="initQuiz()">Neu starten</button>
+    </div>
+</div>
+
+<script>
+    const questions = [
+        { text: "Клиентка хочет записаться на стрижку и окрашивание.", isTrue: true },
+        { text: "Запись в парикмахерскую на среду в пятнадцать тридцать.", isTrue: true },
+        { text: "Клиентка пришла в парикмахерскую в пятницу утром.", isTrue: false },
+        { text: "Ирина хочет сделать стрижку каре.", isTrue: true },
+        { text: "Сначала парикмахер предлагает помыть голову.", isTrue: true },
+        { text: "Ирина хочет покраситься в чёрный цвет.", isTrue: false },
+        { text: "В конце парикмахер делает локоны.", isTrue: false },
+        { text: "Клиентка просит выпрямить волосы.", isTrue: true }
+    ];
+
+    let synth = window.speechSynthesis;
+    let russianMaleVoice = null;
+
+    function findVoice() {
+        const voices = synth.getVoices();
+        russianMaleVoice = voices.find(v => v.lang.includes('ru') && 
+            (v.name.includes('Dmitry') || v.name.includes('Pavel') || v.name.includes('Male'))) 
+            || voices.find(v => v.lang.includes('ru'));
+    }
+
+    if (speechSynthesis.onvoiceschanged !== undefined) {
+        speechSynthesis.onvoiceschanged = findVoice;
+    }
+
+    function initQuiz() {
+        const list = document.getElementById('quiz-list');
+        const scoreDiv = document.getElementById('score-summary');
+        list.innerHTML = "";
+        scoreDiv.innerText = "";
+        findVoice();
+
+        questions.forEach((q, index) => {
+            const card = document.createElement('div');
+            card.className = 'question-card';
+            card.innerHTML = `
+                <div class="top-row">
+                    <button class="audio-btn" onclick="playAudio(${index})">🔊</button>
+                    <button class="show-text-btn" onclick="toggleText(${index})">Satz anzeigen</button>
+                </div>
+                <div class="sentence-display" id="sentence-${index}">${q.text}</div>
+                <div class="options">
+                    <button class="opt-btn" onclick="check(this, ${index}, true)">ДА (Wahr)</button>
+                    <button class="opt-btn" onclick="check(this, ${index}, false)">НЕТ (Falsch)</button>
+                </div>
+            `;
+            list.appendChild(card);
+        });
+    }
+
+    function playAudio(idx) {
+        synth.cancel();
+        const utter = new SpeechSynthesisUtterance(questions[idx].text);
+        if (russianMaleVoice) utter.voice = russianMaleVoice;
+        utter.lang = 'ru-RU';
+        utter.rate = 0.85; 
+        synth.speak(utter);
+    }
+
+    function toggleText(idx) {
+        const element = document.getElementById(`sentence-${idx}`);
+        if (element.style.display === "block") {
+            element.style.display = "none";
+        } else {
+            element.style.display = "block";
+        }
+    }
+
+    function check(btn, qIdx, choice) {
+        const card = btn.closest('.question-card');
+        const buttons = card.querySelectorAll('.opt-btn');
+        
+        buttons.forEach(b => b.disabled = true);
+
+        if (choice === questions[qIdx].isTrue) {
+            btn.classList.add('correct');
+        } else {
+            btn.classList.add('wrong');
+            buttons.forEach(b => {
+                const isDa = b.innerText.includes('ДА');
+                if (isDa === questions[qIdx].isTrue) b.style.borderColor = "var(--success-color)";
+            });
+        }
+        updateScore();
+    }
+
+    function updateScore() {
+        const corrects = document.querySelectorAll('.opt-btn.correct').length;
+        const total = questions.length;
+        const summary = document.getElementById('score-summary');
+        summary.innerText = `Ergebnis: ${corrects} von ${total}`;
+        
+        if (corrects === total) {
+            summary.innerText += " 🎉 Отлично!";
+            summary.style.color = "var(--success-color)";
+        }
+    }
+
+    function showAllSolutions() {
+        const cards = document.querySelectorAll('.question-card');
+        cards.forEach((card, idx) => {
+            const buttons = card.querySelectorAll('.opt-btn');
+            const textDisplay = document.getElementById(`sentence-${idx}`);
+            
+            // Text anzeigen
+            textDisplay.style.display = "block";
+            
+            // Buttons markieren
+            buttons.forEach(btn => {
+                btn.disabled = true;
+                const isDa = btn.innerText.includes('ДА');
+                if (isDa === questions[idx].isTrue) btn.classList.add('correct');
+            });
+        });
+        updateScore();
+    }
+
+    initQuiz();
+</script>
+
+</body>
+</html>
