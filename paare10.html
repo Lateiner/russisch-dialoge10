@@ -1,0 +1,284 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Vokabel-Memory: В парикмахерской</title>
+    <style>
+        :root {
+            --primary-color: #4a90e2;
+            --success-color: #48bb78;
+            --bg-color: #f7fafc;
+            --card-back: #2d3748;
+            --text-color: #2d3748;
+        }
+
+        body {
+            font-family: 'Segoe UI', sans-serif;
+            background-color: var(--bg-color);
+            margin: 0;
+            display: flex;
+            justify-content: center;
+            padding: 10px;
+        }
+
+        .container {
+            width: 100%;
+            max-width: 800px;
+            background: white;
+            padding: 20px;
+            border-radius: 15px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+        }
+
+        h1 {
+            text-align: center;
+            color: var(--primary-color);
+            font-size: 1.4rem;
+            margin-bottom: 5px;
+        }
+
+        .instruction {
+            text-align: center;
+            font-size: 0.9rem;
+            color: #718096;
+            margin-bottom: 20px;
+        }
+
+        .memory-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
+            gap: 10px;
+            perspective: 1000px;
+            min-height: 400px;
+        }
+
+        .memory-card {
+            height: 90px;
+            position: relative;
+            cursor: pointer;
+            transform-style: preserve-3d;
+            transition: transform 0.5s, opacity 0.5s ease-out, visibility 0.5s;
+            user-select: none;
+            touch-action: manipulation;
+        }
+
+        .memory-card.flipped {
+            transform: rotateY(180deg);
+        }
+
+        /* Effekt für verschwindende Paare */
+        .memory-card.matched-hidden {
+            opacity: 0;
+            pointer-events: none;
+            visibility: hidden;
+        }
+
+        .card-face {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            backface-visibility: hidden;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+            padding: 8px;
+            border-radius: 10px;
+            box-sizing: border-box;
+            font-weight: bold;
+            font-size: 0.85rem;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+            border: 2px solid #e2e8f0;
+        }
+
+        .card-front {
+            background-color: var(--card-back);
+            color: white;
+            border-color: var(--card-back);
+        }
+
+        .card-front::after {
+            content: "RU/DE";
+            font-size: 0.7rem;
+            opacity: 0.5;
+        }
+
+        .card-back {
+            background-color: #ffffff;
+            color: var(--text-color);
+            transform: rotateY(180deg);
+            border-color: var(--primary-color);
+        }
+
+        /* Paar-Farben für die Lösung */
+        .pair-0 { background-color: #FFADAD !important; }
+        .pair-1 { background-color: #FFD6A5 !important; }
+        .pair-2 { background-color: #FDFFB6 !important; }
+        .pair-3 { background-color: #CAFFBF !important; }
+        .pair-4 { background-color: #9BF6FF !important; }
+        .pair-5 { background-color: #A0C4FF !important; }
+        .pair-6 { background-color: #BDB2FF !important; }
+        .pair-7 { background-color: #FFC6FF !important; }
+
+        .controls {
+            display: flex;
+            gap: 10px;
+            margin-top: 25px;
+        }
+
+        button {
+            flex: 1;
+            padding: 14px;
+            border: none;
+            border-radius: 8px;
+            font-weight: bold;
+            cursor: pointer;
+            font-size: 0.9rem;
+            transition: opacity 0.2s;
+        }
+
+        .btn-sol { background: #718096; color: white; }
+        .btn-res { background: #e2e8f0; color: #2d3748; }
+
+        #status {
+            text-align: center;
+            margin-top: 15px;
+            font-weight: bold;
+            min-height: 24px;
+        }
+
+        @media (max-width: 480px) {
+            .memory-grid { grid-template-columns: repeat(3, 1fr); }
+            .memory-card { height: 80px; }
+            .card-face { font-size: 0.75rem; }
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h1>Vokabel-Memory</h1>
+    <p class="instruction">Finde die Paare. Richtige Treffer verschwinden!</p>
+
+    <div class="memory-grid" id="grid"></div>
+
+    <div id="status"></div>
+
+    <div class="controls">
+        <button class="btn-sol" onclick="showSolution()">Lösung anzeigen</button>
+        <button class="btn-res" onclick="initGame()">Neu starten</button>
+    </div>
+</div>
+
+<script>
+    const vocabulary = [
+        { ru: "парикмахерская", de: "Friseursalon" },
+        { ru: "стричь волосы", de: "Haare schneiden" },
+        { ru: "красить волосы", de: "Haare färben" },
+        { ru: "кончики", de: "Spitzen" },
+        { ru: "чёлка", de: "Pony" },
+        { ru: "укладка", de: "Styling" },
+        { ru: "мыть голову", de: "Haare waschen" },
+        { ru: "ножницы", de: "Schere" }
+    ];
+
+    let cards = [];
+    let flippedCards = [];
+    let matchesFound = 0;
+    let lockBoard = false;
+
+    function initGame() {
+        const grid = document.getElementById('grid');
+        grid.innerHTML = "";
+        cards = [];
+        flippedCards = [];
+        matchesFound = 0;
+        lockBoard = false;
+        document.getElementById('status').innerText = "";
+
+        let cardData = [];
+        vocabulary.forEach((pair, index) => {
+            cardData.push({ text: pair.ru, id: index });
+            cardData.push({ text: pair.de, id: index });
+        });
+
+        // Mischen
+        cardData.sort(() => Math.random() - 0.5);
+
+        cardData.forEach(data => {
+            const card = document.createElement('div');
+            card.className = 'memory-card';
+            card.dataset.id = data.id;
+            card.innerHTML = `
+                <div class="card-face card-front"></div>
+                <div class="card-face card-back">${data.text}</div>
+            `;
+            card.addEventListener('click', flipCard);
+            grid.appendChild(card);
+            cards.push(card);
+        });
+    }
+
+    function flipCard() {
+        if (lockBoard || this === flippedCards[0] || this.classList.contains('matched-hidden')) return;
+
+        this.classList.add('flipped');
+        flippedCards.push(this);
+
+        if (flippedCards.length === 2) {
+            checkMatch();
+        }
+    }
+
+    function checkMatch() {
+        const [card1, card2] = flippedCards;
+        const isMatch = card1.dataset.id === card2.dataset.id;
+
+        if (isMatch) {
+            matchesFound++;
+            lockBoard = true; 
+            setTimeout(() => {
+                card1.classList.add('matched-hidden');
+                card2.classList.add('matched-hidden');
+                flippedCards = [];
+                lockBoard = false;
+                if (matchesFound === vocabulary.length) {
+                    document.getElementById('status').innerText = "🎉 Hervorragend! Alles gefunden.";
+                    document.getElementById('status').style.color = "var(--success-color)";
+                }
+            }, 600);
+        } else {
+            lockBoard = true;
+            setTimeout(() => {
+                card1.classList.remove('flipped');
+                card2.classList.remove('flipped');
+                flippedCards = [];
+                lockBoard = false;
+            }, 1000);
+        }
+    }
+
+    function showSolution() {
+        matchesFound = vocabulary.length;
+        document.getElementById('status').innerText = "Lösung wird angezeigt.";
+        document.getElementById('status').style.color = "#718096";
+
+        cards.forEach(card => {
+            const pairId = card.dataset.id;
+            // Falls Karte unsichtbar war, wiederholen
+            card.classList.remove('matched-hidden');
+            card.style.visibility = "visible";
+            card.style.opacity = "1";
+            
+            // Umdrehen und Farbe zuweisen
+            card.classList.add('flipped');
+            card.querySelector('.card-back').classList.add(`pair-${pairId}`);
+        });
+    }
+
+    initGame();
+</script>
+
+</body>
+</html>
