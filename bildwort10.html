@@ -1,0 +1,258 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Bild-Wort-Zuordnung</title>
+    <style>
+        :root {
+            --primary-color: #4a90e2;
+            --bg-color: #f7fafc;
+            --text-color: #2d3748;
+            --success-color: #48bb78;
+        }
+
+        body {
+            font-family: 'Segoe UI', sans-serif;
+            background-color: var(--bg-color);
+            margin: 0;
+            display: flex;
+            justify-content: center;
+            padding: 10px;
+        }
+
+        .container {
+            width: 100%;
+            max-width: 600px;
+            background: white;
+            padding: 20px;
+            border-radius: 15px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+        }
+
+        h1 {
+            text-align: center;
+            color: var(--primary-color);
+            font-size: 1.4rem;
+            margin-bottom: 5px;
+        }
+
+        .instruction {
+            text-align: center;
+            font-size: 0.9rem;
+            color: #718096;
+            margin-bottom: 20px;
+        }
+
+        .game-grid {
+            display: grid;
+            grid-template-columns: 1fr 1.5fr;
+            gap: 12px;
+            min-height: 400px; /* Verhindert Springen des Layouts */
+        }
+
+        .column {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .card {
+            background: #ffffff;
+            border: 2px solid #cbd5e0;
+            border-radius: 10px;
+            padding: 12px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.4s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            min-height: 50px;
+            font-weight: 600;
+            user-select: none;
+            touch-action: manipulation;
+        }
+
+        .image-card { font-size: 2.2rem; }
+        .word-card { font-size: 1rem; }
+
+        .selected {
+            border-color: var(--primary-color);
+            background: #ebf8ff;
+            transform: scale(1.02);
+        }
+
+        /* Verschwinden-Effekt */
+        .hidden-match {
+            opacity: 0;
+            pointer-events: none;
+            transform: scale(0.8);
+        }
+
+        /* Paar-Farben für die Lösung */
+        .pair-0 { background-color: #FFADAD !important; border-color: #FF8585 !important; opacity: 1 !important; }
+        .pair-1 { background-color: #FFD6A5 !important; border-color: #FFBD73 !important; opacity: 1 !important; }
+        .pair-2 { background-color: #FDFFB6 !important; border-color: #F0F27F !important; opacity: 1 !important; }
+        .pair-3 { background-color: #CAFFBF !important; border-color: #97E68A !important; opacity: 1 !important; }
+        .pair-4 { background-color: #9BF6FF !important; border-color: #6AD4E0 !important; opacity: 1 !important; }
+        .pair-5 { background-color: #A0C4FF !important; border-color: #79A3E6 !important; opacity: 1 !important; }
+        .pair-6 { background-color: #BDB2FF !important; border-color: #9C8CFF !important; opacity: 1 !important; }
+        .pair-7 { background-color: #FFC6FF !important; border-color: #FF96FF !important; opacity: 1 !important; }
+
+        .controls {
+            display: flex;
+            gap: 10px;
+            margin-top: 30px;
+        }
+
+        button {
+            flex: 1;
+            padding: 14px;
+            border: none;
+            border-radius: 8px;
+            font-weight: bold;
+            cursor: pointer;
+            font-size: 0.95rem;
+            transition: background 0.2s;
+        }
+
+        .btn-sol { background: #718096; color: white; }
+        .btn-res { background: #e2e8f0; color: #2d3748; }
+
+        #win-message {
+            text-align: center;
+            margin-top: 15px;
+            font-weight: bold;
+            color: var(--success-color);
+            min-height: 24px;
+        }
+
+        @media (max-width: 450px) {
+            .image-card { font-size: 1.8rem; }
+            .word-card { font-size: 0.85rem; }
+            .game-grid { min-height: 350px; }
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h1>Bild-Wort-Zuordnung</h1>
+    <p class="instruction">Finde die Paare. Richtige Treffer verschwinden!</p>
+    
+    <div class="game-grid">
+        <div class="column" id="img-col"></div>
+        <div class="column" id="word-col"></div>
+    </div>
+
+    <div id="win-message"></div>
+
+    <div class="controls">
+        <button class="btn-sol" onclick="showSolution()">Lösung anzeigen</button>
+        <button class="btn-res" onclick="initGame()">Neu mischen</button>
+    </div>
+</div>
+
+<script>
+    const vocabularyData = [
+        { id: 0, w: "каре (Bob)", i: "💇‍♀️" },
+        { id: 1, w: "пикси (Kurzhaar)", i: "💇" },
+        { id: 2, w: "локоны (Locken)", i: "👩‍🦱" },
+        { id: 3, w: "прямые волосы (glatt)", i: "👩" },
+        { id: 4, w: "шампунь", i: "🧴" },
+        { id: 5, w: "ножницы", i: "✂️" },
+        { id: 6, w: "фе́н (Föhn)", i: "🌬️" },
+        { id: 7, w: "борода́ (Bart)", i: "🧔" }
+    ];
+
+    let selectedImg = null;
+    let selectedWord = null;
+    let matches = 0;
+
+    function initGame() {
+        selectedImg = null; 
+        selectedWord = null;
+        matches = 0;
+        document.getElementById('win-message').innerText = "";
+        
+        const imgCol = document.getElementById('img-col');
+        const wordCol = document.getElementById('word-col');
+
+        // Zufällig mischen
+        const shuffledImgs = [...vocabularyData].sort(() => Math.random() - 0.5);
+        const shuffledWords = [...vocabularyData].sort(() => Math.random() - 0.5);
+
+        imgCol.innerHTML = shuffledImgs.map(item => `
+            <div class="card image-card" id="img-${item.id}" onclick="handleSelection(this, 'img', ${item.id})">${item.i}</div>
+        `).join('');
+
+        wordCol.innerHTML = shuffledWords.map(item => `
+            <div class="card word-card" id="word-${item.id}" onclick="handleSelection(this, 'word', ${item.id})">${item.w}</div>
+        `).join('');
+    }
+
+    function handleSelection(element, type, id) {
+        if (element.classList.contains('hidden-match')) return;
+
+        // Visuelle Auswahl
+        if (type === 'img') {
+            document.querySelectorAll('.image-card').forEach(c => c.classList.remove('selected'));
+            selectedImg = { element, id };
+        } else {
+            document.querySelectorAll('.word-card').forEach(c => c.classList.remove('selected'));
+            selectedWord = { element, id };
+        }
+        element.classList.add('selected');
+
+        // Prüfung
+        if (selectedImg && selectedWord) {
+            if (selectedImg.id === selectedWord.id) {
+                // Erfolg: Verschwinden lassen
+                const el1 = selectedImg.element;
+                const el2 = selectedWord.element;
+                
+                setTimeout(() => {
+                    el1.classList.add('hidden-match');
+                    el2.classList.add('hidden-match');
+                    matches++;
+                    if (matches === vocabularyData.length) {
+                        document.getElementById('win-message').innerText = "🎉 Toll gemacht! Alles gefunden.";
+                    }
+                }, 300);
+
+                selectedImg = null; 
+                selectedWord = null;
+            } else {
+                // Fehler: Markierung kurz zeigen, dann aufheben
+                const el1 = selectedImg.element;
+                const el2 = selectedWord.element;
+                setTimeout(() => {
+                    el1.classList.remove('selected');
+                    el2.classList.remove('selected');
+                }, 500);
+                selectedImg = null; 
+                selectedWord = null;
+            }
+        }
+    }
+
+    function showSolution() {
+        vocabularyData.forEach(item => {
+            const iCard = document.getElementById(`img-${item.id}`);
+            const wCard = document.getElementById(`word-${item.id}`);
+            
+            // Alles wieder einblenden und Farben zuweisen
+            iCard.classList.remove('hidden-match', 'selected');
+            wCard.classList.remove('hidden-match', 'selected');
+            iCard.classList.add(`pair-${item.id}`);
+            wCard.classList.add(`pair-${item.id}`);
+        });
+        document.getElementById('win-message').innerText = "Lösung wird angezeigt.";
+    }
+
+    initGame();
+</script>
+
+</body>
+</html>
