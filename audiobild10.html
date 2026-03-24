@@ -1,0 +1,263 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Audio-Bild-Matching</title>
+    <style>
+        :root {
+            --primary-color: #4a90e2;
+            --success-color: #48bb78;
+            --error-color: #f56565;
+            --bg-color: #f7fafc;
+            --text-color: #2d3748;
+        }
+
+        body {
+            font-family: 'Segoe UI', sans-serif;
+            background-color: var(--bg-color);
+            margin: 0;
+            display: flex;
+            justify-content: center;
+            padding: 10px;
+        }
+
+        .container {
+            width: 100%;
+            max-width: 600px;
+            background: white;
+            padding: 20px;
+            border-radius: 15px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+        }
+
+        h1 {
+            text-align: center;
+            color: var(--primary-color);
+            font-size: 1.3rem;
+            margin-bottom: 5px;
+        }
+
+        .instruction {
+            text-align: center;
+            font-size: 0.85rem;
+            color: #718096;
+            margin-bottom: 20px;
+        }
+
+        .game-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+            min-height: 450px;
+        }
+
+        .column {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .card {
+            background: #ffffff;
+            border: 2px solid #cbd5e0;
+            border-radius: 10px;
+            padding: 15px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.3s ease;
+            user-select: none;
+            min-height: 55px;
+        }
+
+        .audio-card { font-size: 1.4rem; background-color: #edf2f7; }
+        .emoji-card { font-size: 2.2rem; }
+
+        .selected {
+            border-color: var(--primary-color);
+            background-color: #ebf8ff;
+            transform: scale(1.05);
+        }
+
+        /* Effekt: Paare verschwinden */
+        .hidden-match {
+            opacity: 0;
+            pointer-events: none;
+            transform: scale(0.9);
+        }
+
+        /* Paar-Farben für die Lösung */
+        .pair-0 { background-color: #FFADAD !important; border-color: #FF8585 !important; opacity: 1 !important; pointer-events: none; }
+        .pair-1 { background-color: #FFD6A5 !important; border-color: #FFBD73 !important; opacity: 1 !important; pointer-events: none; }
+        .pair-2 { background-color: #FDFFB6 !important; border-color: #F0F27F !important; opacity: 1 !important; pointer-events: none; }
+        .pair-3 { background-color: #CAFFBF !important; border-color: #97E68A !important; opacity: 1 !important; pointer-events: none; }
+        .pair-4 { background-color: #9BF6FF !important; border-color: #6AD4E0 !important; opacity: 1 !important; pointer-events: none; }
+        .pair-5 { background-color: #A0C4FF !important; border-color: #79A3E6 !important; opacity: 1 !important; pointer-events: none; }
+        .pair-6 { background-color: #BDB2FF !important; border-color: #9C8CFF !important; opacity: 1 !important; pointer-events: none; }
+        .pair-7 { background-color: #FFC6FF !important; border-color: #FF96FF !important; opacity: 1 !important; pointer-events: none; }
+
+        .controls {
+            display: flex;
+            gap: 10px;
+            margin-top: 25px;
+        }
+
+        button.btn {
+            flex: 1;
+            padding: 12px;
+            border: none;
+            border-radius: 8px;
+            font-weight: bold;
+            cursor: pointer;
+            font-size: 0.9rem;
+        }
+
+        .btn-sol { background: #718096; color: white; }
+        .btn-res { background: #e2e8f0; color: var(--text-color); }
+
+        #win-msg {
+            text-align: center;
+            margin-top: 15px;
+            font-weight: bold;
+            min-height: 24px;
+            color: var(--success-color);
+        }
+
+        @media (max-width: 450px) {
+            .emoji-card { font-size: 1.8rem; }
+            .game-grid { min-height: 400px; }
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h1>Hör-Bild-Matching</h1>
+    <p class="instruction">Erst Lautsprecher klicken, dann das passende Bild wählen. Paare verschwinden!</p>
+
+    <div class="game-grid">
+        <div class="column" id="audio-col"></div>
+        <div class="column" id="emoji-col"></div>
+    </div>
+
+    <div id="win-msg"></div>
+
+    <div class="controls">
+        <button class="btn btn-sol" onclick="showSolution()">Lösung anzeigen</button>
+        <button class="btn btn-res" onclick="initGame()">Neu starten</button>
+    </div>
+</div>
+
+<script>
+    const vocabulary = [
+        { id: 0, text: "чёлка", emoji: "💇‍♀️" },
+        { id: 1, text: "борода", emoji: "🧔" },
+        { id: 2, text: "ножницы", emoji: "✂️" },
+        { id: 3, text: "фен", emoji: "🌬️" },
+        { id: 4, text: "шампунь", emoji: "🧴" },
+        { id: 5, text: "зеркало", emoji: "🪞" },
+        { id: 6, text: "расчёска", emoji: "🪮" },
+        { id: 7, text: "усы", emoji: "👨‍🦰" }
+    ];
+
+    let selectedAudioId = null;
+    let matchesFound = 0;
+    let synth = window.speechSynthesis;
+    let russianMaleVoice = null;
+
+    function findVoice() {
+        const voices = synth.getVoices();
+        russianMaleVoice = voices.find(v => v.lang.includes('ru') && 
+            (v.name.includes('Dmitry') || v.name.includes('Pavel') || v.name.includes('Male'))) 
+            || voices.find(v => v.lang.includes('ru'));
+    }
+
+    if (speechSynthesis.onvoiceschanged !== undefined) {
+        speechSynthesis.onvoiceschanged = findVoice;
+    }
+
+    function initGame() {
+        selectedAudioId = null;
+        matchesFound = 0;
+        document.getElementById('win-msg').innerText = "";
+        const audioCol = document.getElementById('audio-col');
+        const emojiCol = document.getElementById('emoji-col');
+        
+        findVoice();
+
+        const shuffledAudio = [...vocabulary].sort(() => Math.random() - 0.5);
+        const shuffledEmoji = [...vocabulary].sort(() => Math.random() - 0.5);
+
+        audioCol.innerHTML = shuffledAudio.map(item => `
+            <div class="card audio-card" id="audio-${item.id}" onclick="playAndSelect(${item.id})">🔊</div>
+        `).join('');
+
+        emojiCol.innerHTML = shuffledEmoji.map(item => `
+            <div class="card emoji-card" id="emoji-${item.id}" onclick="selectEmoji(${item.id})">${item.emoji}</div>
+        `).join('');
+    }
+
+    function playAndSelect(id) {
+        const card = document.getElementById(`audio-${id}`);
+        if (card.classList.contains('hidden-match')) return;
+
+        synth.cancel();
+        const item = vocabulary.find(v => v.id === id);
+        const utter = new SpeechSynthesisUtterance(item.text);
+        if (russianMaleVoice) utter.voice = russianMaleVoice;
+        utter.lang = 'ru-RU';
+        utter.rate = 0.85;
+        synth.speak(utter);
+
+        document.querySelectorAll('.audio-card').forEach(c => c.classList.remove('selected'));
+        card.classList.add('selected');
+        selectedAudioId = id;
+    }
+
+    function selectEmoji(id) {
+        if (selectedAudioId === null) return;
+        const emojiCard = document.getElementById(`emoji-${id}`);
+        if (emojiCard.classList.contains('hidden-match')) return;
+
+        if (id === selectedAudioId) {
+            const audioCard = document.getElementById(`audio-${selectedAudioId}`);
+            
+            setTimeout(() => {
+                audioCard.classList.add('hidden-match');
+                emojiCard.classList.add('hidden-match');
+                audioCard.classList.remove('selected');
+                matchesFound++;
+                if (matchesFound === vocabulary.length) {
+                    document.getElementById('win-msg').innerText = "🎉 Отлично! Всё верно!";
+                }
+            }, 200);
+            selectedAudioId = null;
+        } else {
+            emojiCard.style.borderColor = "var(--error-color)";
+            setTimeout(() => emojiCard.style.borderColor = "", 500);
+        }
+    }
+
+    function showSolution() {
+        vocabulary.forEach(item => {
+            const aCard = document.getElementById(`audio-${item.id}`);
+            const eCard = document.getElementById(`emoji-${item.id}`);
+            
+            aCard.classList.remove('hidden-match', 'selected');
+            eCard.classList.remove('hidden-match', 'selected');
+            
+            const colorClass = `pair-${item.id}`;
+            aCard.classList.add(colorClass);
+            eCard.classList.add(colorClass);
+        });
+        document.getElementById('win-msg').innerText = "Lösung angezeigt.";
+        selectedAudioId = null;
+    }
+
+    initGame();
+</script>
+
+</body>
+</html>
