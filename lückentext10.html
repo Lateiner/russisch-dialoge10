@@ -1,0 +1,250 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Lückentext: В парикмахерской</title>
+    <style>
+        :root {
+            --primary-color: #4a90e2;
+            --success-color: #48bb78;
+            --error-color: #f56565;
+            --bg-color: #f7fafc;
+            --text-color: #2d3748;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            line-height: 1.6;
+            display: flex;
+            justify-content: center;
+            padding: 15px;
+            margin: 0;
+        }
+
+        .container {
+            width: 100%;
+            max-width: 750px;
+            background: white;
+            padding: 25px;
+            border-radius: 15px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+        }
+
+        h1 {
+            text-align: center;
+            color: var(--primary-color);
+            font-size: 1.5rem;
+            margin-bottom: 20px;
+        }
+
+        .dialog-box {
+            background: #fdfdfd;
+            border-left: 4px solid var(--primary-color);
+            padding: 15px;
+            margin-bottom: 20px;
+            font-size: 1.1rem;
+            white-space: pre-wrap; /* Bewahrt Zeilenumbrüche */
+        }
+
+        .speaker {
+            font-weight: bold;
+            color: var(--primary-color);
+            display: block;
+            margin-top: 10px;
+        }
+
+        /* Styling der Dropdown-Menüs */
+        select {
+            padding: 4px 8px;
+            font-size: 1rem;
+            border: 2px solid #cbd5e0;
+            border-radius: 6px;
+            background-color: white;
+            cursor: pointer;
+            margin: 2px 0;
+            outline: none;
+            transition: all 0.3s ease;
+            max-width: 100%;
+        }
+
+        select:focus {
+            border-color: var(--primary-color);
+        }
+
+        select.correct {
+            background-color: #f0fff4;
+            border-color: var(--success-color);
+            color: #276749;
+        }
+
+        select.wrong {
+            background-color: #fff5f5;
+            border-color: var(--error-color);
+            color: #9b2c2c;
+        }
+
+        .controls {
+            display: flex;
+            gap: 10px;
+            margin-top: 30px;
+        }
+
+        button {
+            flex: 1;
+            padding: 12px;
+            border: none;
+            border-radius: 8px;
+            font-weight: bold;
+            cursor: pointer;
+            font-size: 1rem;
+            transition: background 0.2s;
+        }
+
+        .btn-solution {
+            background-color: #718096;
+            color: white;
+        }
+
+        .btn-reset {
+            background-color: #edf2f7;
+            color: var(--text-color);
+        }
+
+        #score-display {
+            text-align: center;
+            margin-top: 15px;
+            font-weight: bold;
+            font-size: 1.1rem;
+        }
+
+        @media (max-width: 480px) {
+            .container { padding: 15px; }
+            h1 { font-size: 1.2rem; }
+            .dialog-box { font-size: 0.95rem; }
+            select { font-size: 0.9rem; }
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h1>Заполните пропуски</h1>
+    <p style="text-align: center; color: #718096; margin-bottom: 20px;">Wählen Sie das richtige Wort aus dem Menü aus.</p>
+
+    <div class="dialog-box">
+        <span class="speaker">К:</span> „Здравствуйте! Я хочу 
+        <select data-correct="записаться">
+            <option value="">...</option>
+            <option value="помыть">помыть</option>
+            <option value="записаться">записаться</option>
+            <option value="высушить">высушить</option>
+        </select> на 
+        <select data-correct="стрижку">
+            <option value="">...</option>
+            <option value="палитру">палитру</option>
+            <option value="ножницы">ножницы</option>
+            <option value="стрижку">стрижку</option>
+        </select> и окрашивание.“
+
+        <span class="speaker">П:</span> „Что будем делать?“
+        
+        <span class="speaker">К:</span> „Мне нужно 
+        <select data-correct="подровнять">
+            <option value="">...</option>
+            <option value="подровнять">подровнять</option>
+            <option value="сбрить">сбрить</option>
+            <option value="завивать">завивать</option>
+        </select> кончики и покрасить волосы.“
+
+        <span class="speaker">П:</span> „Хорошо. Давайте сначала 
+        <select data-correct="помоем">
+            <option value="">...</option>
+            <option value="помоем">помоем</option>
+            <option value="выпрямим">выпрямим</option>
+            <option value="запишем">запишем</option>
+        </select> голову, а потом выберем цвет.“
+        ...
+        <span class="speaker">П:</span> „Вы хотите прямые волосы или 
+        <select data-correct="локоны">
+            <option value="">...</option>
+            <option value="укладку">укладку</option>
+            <option value="локоны">локоны</option>
+            <option value="шампунь">шампунь</option>
+        </select>?“
+
+        <span class="speaker">К:</span> „Давайте сегодня 
+        <select data-correct="выпрямим">
+            <option value="">...</option>
+            <option value="выпрямим">выпрямим</option>
+            <option value="пострижём">пострижём</option>
+            <option value="запишем">запишем</option>
+        </select>.“
+    </div>
+
+    <div id="score-display"></div>
+
+    <div class="controls">
+        <button class="btn-solution" onclick="showSolution()">Lösung anzeigen</button>
+        <button class="btn-reset" onclick="resetGame()">Neu starten</button>
+    </div>
+</div>
+
+<script>
+    const selects = document.querySelectorAll('select');
+    const scoreDisplay = document.getElementById('score-display');
+
+    // Event Listener für jedes Select-Feld
+    selects.forEach(select => {
+        select.addEventListener('change', function() {
+            checkAnswer(this);
+            updateScore();
+        });
+    });
+
+    function checkAnswer(element) {
+        if (element.value === "") {
+            element.className = "";
+        } else if (element.value === element.dataset.correct) {
+            element.className = "correct";
+        } else {
+            element.className = "wrong";
+        }
+    }
+
+    function updateScore() {
+        let correctCount = 0;
+        selects.forEach(select => {
+            if (select.value === select.dataset.correct) correctCount++;
+        });
+
+        if (correctCount === selects.length) {
+            scoreDisplay.innerHTML = "🎉 Отлично! Все ответы верны!";
+            scoreDisplay.style.color = "var(--success-color)";
+        } else {
+            scoreDisplay.innerHTML = `Верно: ${correctCount} из ${selects.length}`;
+            scoreDisplay.style.color = "var(--text-color)";
+        }
+    }
+
+    function showSolution() {
+        selects.forEach(select => {
+            select.value = select.dataset.correct;
+            select.className = "correct";
+        });
+        updateScore();
+    }
+
+    function resetGame() {
+        selects.forEach(select => {
+            select.value = "";
+            select.className = "";
+        });
+        scoreDisplay.innerHTML = "";
+    }
+</script>
+
+</body>
+</html>
