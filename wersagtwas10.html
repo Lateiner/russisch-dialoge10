@@ -1,0 +1,328 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Wer sagt was? - В парикмахерской</title>
+    <style>
+        :root {
+            --primary-color: #4a90e2;
+            --success-color: #48bb78;
+            --error-color: #f56565;
+            --bg-color: #f7fafc;
+            --text-color: #2d3748;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: var(--bg-color);
+            margin: 0;
+            display: flex;
+            justify-content: center;
+            padding: 10px;
+        }
+
+        .container {
+            width: 100%;
+            max-width: 800px;
+            background: white;
+            padding: 20px;
+            border-radius: 15px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+        }
+
+        h1 {
+            text-align: center;
+            color: var(--primary-color);
+            font-size: 1.4rem;
+            margin-bottom: 5px;
+        }
+
+        .instruction {
+            text-align: center;
+            font-size: 0.9rem;
+            color: #718096;
+            margin-bottom: 20px;
+        }
+
+        /* Stapel der Aussagen */
+        #statement-pile {
+            background: #edf2f7;
+            padding: 15px;
+            border-radius: 12px;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            justify-content: center;
+            min-height: 80px;
+            margin-bottom: 25px;
+            border: 2px dashed #cbd5e0;
+        }
+
+        .statement-card {
+            background: white;
+            border: 2px solid #cbd5e0;
+            padding: 10px 15px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 0.95rem;
+            font-weight: 500;
+            user-select: none;
+            transition: all 0.2s;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+        }
+
+        .statement-card.selected {
+            border-color: var(--primary-color);
+            background-color: #ebf8ff;
+            transform: translateY(-2px);
+        }
+
+        /* Ziel-Bereiche */
+        .zones-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+        }
+
+        .zone {
+            background: #ffffff;
+            border: 3px solid #e2e8f0;
+            border-radius: 12px;
+            padding: 15px;
+            min-height: 250px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            transition: all 0.3s;
+            cursor: pointer;
+        }
+
+        .zone:hover {
+            border-color: #cbd5e0;
+        }
+
+        .zone.active-target {
+            border-color: var(--primary-color);
+            background-color: #f0f7ff;
+        }
+
+        .zone h2 {
+            font-size: 1.1rem;
+            margin-bottom: 15px;
+            color: var(--primary-color);
+            pointer-events: none;
+        }
+
+        .zone-content {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            width: 100%;
+        }
+
+        .placed-card {
+            background: #f0fff4;
+            border: 1px solid var(--success-color);
+            padding: 8px 12px;
+            border-radius: 6px;
+            font-size: 0.9rem;
+            color: #276749;
+            animation: popIn 0.3s ease-out;
+        }
+
+        @keyframes popIn {
+            0% { transform: scale(0.9); opacity: 0; }
+            100% { transform: scale(1); opacity: 1; }
+        }
+
+        .shake { animation: shake 0.4s; }
+        @keyframes shake {
+            0%, 100% { transform: translateX(0); }
+            25% { transform: translateX(-5px); }
+            75% { transform: translateX(5px); }
+        }
+
+        /* Controls */
+        .controls {
+            display: flex;
+            gap: 10px;
+            margin-top: 30px;
+        }
+
+        button.main-btn {
+            flex: 1;
+            padding: 14px;
+            border: none;
+            border-radius: 8px;
+            font-weight: bold;
+            cursor: pointer;
+            font-size: 1rem;
+        }
+
+        .btn-sol { background: #718096; color: white; }
+        .btn-res { background: #e2e8f0; color: var(--text-color); }
+
+        #game-status {
+            text-align: center;
+            margin-top: 15px;
+            font-weight: bold;
+            min-height: 24px;
+        }
+
+        @media (max-width: 600px) {
+            .zones-grid { grid-template-columns: 1fr; }
+            .zone { min-height: 150px; }
+            h1 { font-size: 1.2rem; }
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h1>Кто это говорит?</h1>
+    <p class="instruction">Klicken Sie auf einen Satz und wählen Sie dann die Person (Клиент oder Парикмахер).</p>
+
+    <div id="statement-pile"></div>
+
+    <div class="zones-grid">
+        <div class="zone" id="zone-K" onclick="handleZoneClick('K')">
+            <h2>КЛИЕНТ</h2>
+            <div class="zone-content" id="content-K"></div>
+        </div>
+        <div class="zone" id="zone-P" onclick="handleZoneClick('P')">
+            <h2>ПАРИКМАХЕР</h2>
+            <div class="zone-content" id="content-P"></div>
+        </div>
+    </div>
+
+    <div id="game-status"></div>
+
+    <div class="controls">
+        <button class="main-btn btn-sol" onclick="showSolution()">Lösung anzeigen</button>
+        <button class="main-btn btn-res" onclick="initGame()">Neu starten</button>
+    </div>
+</div>
+
+<script>
+    const data = [
+        { text: "Я хочу записаться на стрижку и окрашивание.", role: "K" },
+        { text: "Могу записать вас на среду в 15:30.", role: "P" },
+        { text: "Мне нужно сделать стрижку.", role: "K" },
+        { text: "Я бы хотела каре.", role: "K" },
+        { text: "Здравствуйте! Что будем делать?", role: "P" },
+        { text: "Давайте сначала помоем голову.", role: "P" },
+        { text: "Я принесу вам палитру, выберем цвет.", role: "P" },
+        { text: "Я также хочу покраситься в каштановый цвет.", role: "K" },
+        { text: "Вы хотите прямые волосы или локоны?", role: "P" },
+        { text: "Давайте сегодня выпрямим.", role: "K" }
+    ];
+
+    let selectedItem = null;
+    let remaining = 0;
+
+    function initGame() {
+        selectedItem = null;
+        remaining = data.length;
+        document.getElementById('statement-pile').innerHTML = "";
+        document.getElementById('content-K').innerHTML = "";
+        document.getElementById('content-P').innerHTML = "";
+        document.getElementById('game-status').innerText = "";
+        
+        const shuffled = [...data].sort(() => Math.random() - 0.5);
+
+        shuffled.forEach((item, index) => {
+            const div = document.createElement('div');
+            div.className = 'statement-card';
+            div.innerText = item.text;
+            div.onclick = (e) => {
+                e.stopPropagation();
+                selectStatement(div, item);
+            };
+            document.getElementById('statement-pile').appendChild(div);
+        });
+        updateStatus();
+    }
+
+    function selectStatement(element, itemData) {
+        document.querySelectorAll('.statement-card').forEach(c => c.classList.remove('selected'));
+        element.classList.add('selected');
+        selectedItem = { element, data: itemData };
+        
+        // Zielzonen visuell hervorheben
+        document.querySelectorAll('.zone').forEach(z => z.classList.add('active-target'));
+    }
+
+    function handleZoneClick(roleId) {
+        if (!selectedItem) return;
+
+        if (selectedItem.data.role === roleId) {
+            // Richtig zugeordnet
+            const targetContent = document.getElementById(`content-${roleId}`);
+            const placedDiv = document.createElement('div');
+            placedDiv.className = 'placed-card';
+            placedDiv.innerText = selectedItem.data.text;
+            
+            targetContent.appendChild(placedDiv);
+            selectedItem.element.remove();
+            
+            selectedItem = null;
+            remaining--;
+            document.querySelectorAll('.zone').forEach(z => z.classList.remove('active-target'));
+            updateStatus();
+        } else {
+            // Falsch zugeordnet
+            const el = selectedItem.element;
+            el.classList.add('shake');
+            el.style.borderColor = "var(--error-color)";
+            setTimeout(() => {
+                el.classList.remove('shake');
+                el.style.borderColor = "";
+            }, 400);
+        }
+    }
+
+    function updateStatus() {
+        const status = document.getElementById('game-status');
+        if (remaining === 0) {
+            status.innerHTML = "🎉 Отлично! Вы правильно распределили все фразы!";
+            status.style.color = "var(--success-color)";
+        } else {
+            status.innerText = `Осталось фраз: ${remaining}`;
+            status.style.color = "var(--text-color)";
+        }
+    }
+
+    function showSolution() {
+        // Alle verbleibenden Sätze im Pile verarbeiten
+        const currentCards = [...document.querySelectorAll('#statement-pile .statement-card')];
+        currentCards.forEach(card => {
+            const text = card.innerText;
+            const itemData = data.find(d => d.text === text);
+            const targetContent = document.getElementById(`content-${itemData.role}`);
+            
+            const placedDiv = document.createElement('div');
+            placedDiv.className = 'placed-card';
+            placedDiv.innerText = itemData.text;
+            targetContent.appendChild(placedDiv);
+            card.remove();
+        });
+        
+        remaining = 0;
+        selectedItem = null;
+        document.querySelectorAll('.zone').forEach(z => z.classList.remove('active-target'));
+        updateStatus();
+    }
+
+    // Klick auf Hintergrund hebt Auswahl auf
+    document.addEventListener('click', () => {
+        selectedItem = null;
+        document.querySelectorAll('.statement-card').forEach(c => c.classList.remove('selected'));
+        document.querySelectorAll('.zone').forEach(z => z.classList.remove('active-target'));
+    });
+
+    initGame();
+</script>
+
+</body>
+</html>
