@@ -1,0 +1,299 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dialog-Puzzle: В парикмахерской</title>
+    <style>
+        :root {
+            --primary-color: #4a90e2;
+            --success-color: #48bb78;
+            --error-color: #f56565;
+            --bg-color: #f7fafc;
+            --text-color: #2d3748;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            display: flex;
+            justify-content: center;
+            padding: 15px;
+            margin: 0;
+        }
+
+        .container {
+            width: 100%;
+            max-width: 700px;
+            background: white;
+            padding: 20px;
+            border-radius: 12px;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+        }
+
+        h1 {
+            font-size: 1.4rem;
+            text-align: center;
+            color: var(--primary-color);
+            margin-bottom: 5px;
+        }
+
+        p.instruction {
+            text-align: center;
+            font-size: 0.9rem;
+            margin-bottom: 20px;
+            color: #718096;
+        }
+
+        #puzzle-list {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+        }
+
+        .puzzle-item {
+            background: #edf2f7;
+            border: 2px solid #e2e8f0;
+            padding: 10px 15px;
+            margin-bottom: 8px;
+            border-radius: 8px;
+            cursor: grab;
+            display: flex;
+            align-items: center;
+            transition: background-color 0.3s, border-color 0.3s;
+            user-select: none;
+            touch-action: none;
+        }
+
+        .puzzle-item.dragging {
+            opacity: 0.6;
+            background: #cbd5e0;
+        }
+
+        .puzzle-item .number {
+            font-weight: bold;
+            margin-right: 12px;
+            background: white;
+            width: 24px;
+            height: 24px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 50%;
+            font-size: 0.75rem;
+            flex-shrink: 0;
+            border: 1px solid #cbd5e0;
+        }
+
+        /* Feedback Farben */
+        .correct { 
+            border-color: var(--success-color); 
+            background-color: #f0fff4; 
+        }
+        .correct .number {
+            background-color: var(--success-color);
+            color: white;
+            border-color: var(--success-color);
+        }
+
+        .wrong { 
+            border-color: var(--error-color); 
+            background-color: #fff5f5; 
+        }
+
+        .controls {
+            margin-top: 20px;
+            display: flex;
+            gap: 10px;
+        }
+
+        button {
+            flex: 1;
+            padding: 12px;
+            font-size: 0.9rem;
+            font-weight: bold;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: opacity 0.2s;
+        }
+
+        .btn-solution {
+            background-color: #718096;
+            color: white;
+        }
+
+        .btn-reset {
+            background-color: #edf2f7;
+            color: var(--text-color);
+        }
+
+        #feedback-text {
+            margin-top: 15px;
+            text-align: center;
+            font-weight: bold;
+            min-height: 20px;
+        }
+
+        @media (max-width: 480px) {
+            h1 { font-size: 1.1rem; }
+            .puzzle-item { font-size: 0.85rem; padding: 8px 12px; }
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h1>В парикмахерской</h1>
+    <p class="instruction">Bringe die Sätze in die richtige Reihenfolge. Das Feedback erfolgt sofort.</p>
+
+    <ul id="puzzle-list"></ul>
+
+    <div id="feedback-text"></div>
+
+    <div class="controls">
+        <button class="btn-solution" onclick="showSolution()">Lösung anzeigen</button>
+        <button class="btn-reset" onclick="initGame()">Neu mischen</button>
+    </div>
+</div>
+
+<script>
+    const correctOrder = [
+        "Здравствуйте! Я хочу записаться на стрижку и окрашивание.",
+        "Здравствуйте! Могу записать вас на среду в 15:30. Вам удобно?",
+        "Да, запишите, пожалуйста.",
+        "Здравствуйте! Я по записи на 15:30.",
+        "Здравствуйте! Проходите, садитесь. Что будем делать?",
+        "Мне нужно сделать стрижку. Я бы хотела каре.",
+        "И я также хочу покраситься в каштановый цвет.",
+        "Хорошо. Давайте сначала помоем голову.",
+        "Сейчас сделаем укладку. Вы хотите прямые волосы oder локоны?",
+        "Давайте сегодня выпрямим."
+    ];
+
+    function initGame() {
+        const list = document.getElementById('puzzle-list');
+        document.getElementById('feedback-text').innerText = "";
+        list.innerHTML = "";
+        
+        let shuffled = [...correctOrder].sort(() => Math.random() - 0.5);
+
+        shuffled.forEach(text => {
+            const li = createListItem(text);
+            list.appendChild(li);
+        });
+        updateFeedback();
+    }
+
+    function createListItem(text) {
+        const li = document.createElement('li');
+        li.className = 'puzzle-item';
+        li.draggable = true;
+        li.innerHTML = `<span class="number">?</span> <span class="text">${text}</span>`;
+        
+        // Desktop Drag
+        li.addEventListener('dragstart', () => li.classList.add('dragging'));
+        li.addEventListener('dragend', () => {
+            li.classList.remove('dragging');
+            updateFeedback();
+        });
+
+        // Touch (Mobile)
+        li.addEventListener('touchstart', handleTouchStart, {passive: false});
+        li.addEventListener('touchmove', handleTouchMove, {passive: false});
+        li.addEventListener('touchend', () => {
+            li.classList.remove('dragging');
+            updateFeedback();
+        });
+
+        return li;
+    }
+
+    // Drag & Drop Logik
+    const list = document.getElementById('puzzle-list');
+    list.addEventListener('dragover', e => {
+        e.preventDefault();
+        const afterElement = getDragAfterElement(list, e.clientY);
+        const dragging = document.querySelector('.dragging');
+        if (afterElement == null) {
+            list.appendChild(dragging);
+        } else {
+            list.insertBefore(dragging, afterElement);
+        }
+    });
+
+    function getDragAfterElement(container, y) {
+        const draggableElements = [...container.querySelectorAll('.puzzle-item:not(.dragging)')];
+        return draggableElements.reduce((closest, child) => {
+            const box = child.getBoundingClientRect();
+            const offset = y - box.top - box.height / 2;
+            if (offset < 0 && offset > closest.offset) {
+                return { offset: offset, element: child };
+            } else {
+                return closest;
+            }
+        }, { offset: Number.NEGATIVE_INFINITY }).element;
+    }
+
+    // Mobile Touch Logik
+    function handleTouchStart(e) { this.classList.add('dragging'); }
+    function handleTouchMove(e) {
+        e.preventDefault();
+        const touch = e.touches[0];
+        const afterElement = getDragAfterElement(list, touch.clientY);
+        const dragging = document.querySelector('.dragging');
+        if (afterElement == null) {
+            list.appendChild(dragging);
+        } else {
+            list.insertBefore(dragging, afterElement);
+        }
+    }
+
+    // Sofortiges Feedback
+    function updateFeedback() {
+        const currentItems = document.querySelectorAll('.puzzle-item');
+        let allCorrect = true;
+        let correctCount = 0;
+
+        currentItems.forEach((item, index) => {
+            const text = item.querySelector('.text').innerText;
+            const numberSpan = item.querySelector('.number');
+
+            if (text === correctOrder[index]) {
+                item.classList.add('correct');
+                item.classList.remove('wrong');
+                numberSpan.innerText = index + 1;
+                correctCount++;
+            } else {
+                item.classList.remove('correct');
+                item.classList.add('wrong');
+                numberSpan.innerText = "?";
+                allCorrect = false;
+            }
+        });
+
+        const feedbackText = document.getElementById('feedback-text');
+        if (allCorrect) {
+            feedbackText.innerText = "🎉 Super! Alles richtig!";
+            feedbackText.style.color = "var(--success-color)";
+        } else {
+            feedbackText.innerText = `Richtig: ${correctCount} von ${correctOrder.length}`;
+            feedbackText.style.color = "var(--text-color)";
+        }
+    }
+
+    function showSolution() {
+        const list = document.getElementById('puzzle-list');
+        list.innerHTML = "";
+        correctOrder.forEach(text => {
+            list.appendChild(createListItem(text));
+        });
+        updateFeedback();
+    }
+
+    initGame();
+</script>
+
+</body>
+</html>
