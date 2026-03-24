@@ -1,0 +1,310 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Kategorisierung: В парикмахерской</title>
+    <style>
+        :root {
+            --primary-color: #4a90e2;
+            --success-color: #48bb78;
+            --error-color: #f56565;
+            --bg-color: #f7fafc;
+            --text-color: #2d3748;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: var(--bg-color);
+            margin: 0;
+            display: flex;
+            justify-content: center;
+            padding: 15px;
+        }
+
+        .container {
+            width: 100%;
+            max-width: 800px;
+            background: white;
+            padding: 20px;
+            border-radius: 15px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+        }
+
+        h1 {
+            text-align: center;
+            color: var(--primary-color);
+            font-size: 1.4rem;
+            margin: 0 0 10px 0;
+        }
+
+        .instruction {
+            text-align: center;
+            font-size: 0.9rem;
+            color: #718096;
+            margin-bottom: 20px;
+        }
+
+        /* Wort-Stapel */
+        #word-pile {
+            background: #edf2f7;
+            padding: 15px;
+            border-radius: 10px;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            justify-content: center;
+            min-height: 100px;
+            margin-bottom: 30px;
+            border: 2px dashed #cbd5e0;
+        }
+
+        .word-card {
+            background: white;
+            border: 2px solid #cbd5e0;
+            padding: 8px 15px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: 600;
+            user-select: none;
+            transition: all 0.2s;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+        }
+
+        .word-card:hover { border-color: var(--primary-color); }
+        .word-card.selected { 
+            background: var(--primary-color); 
+            color: white; 
+            border-color: var(--primary-color);
+            transform: translateY(-3px);
+        }
+
+        /* Kategorien-Boxen */
+        .zones-container {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+        }
+
+        .zone {
+            border: 3px solid #e2e8f0;
+            border-radius: 12px;
+            padding: 15px;
+            min-height: 200px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            transition: all 0.3s;
+        }
+
+        .zone h2 {
+            font-size: 1rem;
+            margin-bottom: 15px;
+            text-align: center;
+            color: var(--text-color);
+            pointer-events: none;
+        }
+
+        .zone.active-target {
+            border-color: var(--primary-color);
+            background: #ebf8ff;
+        }
+
+        .zone-content {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            justify-content: center;
+            width: 100%;
+        }
+
+        /* Feedback Animationen */
+        .shake { animation: shake 0.4s; }
+        @keyframes shake {
+            0%, 100% { transform: translateX(0); }
+            25% { transform: translateX(-5px); }
+            75% { transform: translateX(5px); }
+        }
+
+        .placed {
+            background: #f0fff4 !important;
+            border-color: var(--success-color) !important;
+            color: #276749 !important;
+            cursor: default;
+        }
+
+        /* Steuerung */
+        .controls {
+            display: flex;
+            gap: 10px;
+            margin-top: 30px;
+        }
+
+        button {
+            flex: 1;
+            padding: 12px;
+            border: none;
+            border-radius: 8px;
+            font-weight: bold;
+            cursor: pointer;
+            font-size: 0.95rem;
+        }
+
+        .btn-sol { background: #718096; color: white; }
+        .btn-res { background: #e2e8f0; color: var(--text-color); }
+
+        #counter { text-align: center; margin-top: 15px; font-weight: bold; }
+
+        @media (max-width: 500px) {
+            .zones-container { grid-template-columns: 1fr; }
+            .zone { min-height: 150px; }
+            h1 { font-size: 1.2rem; }
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h1>Kategorisierung</h1>
+    <p class="instruction">Klicke ein Wort an und wähle dann die richtige Box aus.</p>
+
+    <div id="word-pile"></div>
+
+    <div class="zones-container">
+        <div class="zone" id="zone-action" onclick="handleZoneClick('action')">
+            <h2>ДЕЙСТВИЯ<br>(Aktionen/Verben)</h2>
+            <div class="zone-content" id="content-action"></div>
+        </div>
+        <div class="zone" id="zone-object" onclick="handleZoneClick('object')">
+            <h2>ОБЪЕКТЫ<br>(Objekte/Nomen)</h2>
+            <div class="zone-content" id="content-object"></div>
+        </div>
+    </div>
+
+    <div id="counter"></div>
+
+    <div class="controls">
+        <button class="btn-sol" onclick="showSolution()">Lösung anzeigen</button>
+        <button class="btn-res" onclick="initGame()">Neu starten</button>
+    </div>
+</div>
+
+<script>
+    const vocabulary = [
+        { text: "стричь", cat: "action" },
+        { text: "красить", cat: "action" },
+        { text: "мыть", cat: "action" },
+        { text: "подровнять", cat: "action" },
+        { text: "высушить", cat: "action" },
+        { text: "шампунь", cat: "object" },
+        { text: "ножницы", cat: "object" },
+        { text: "палитра", cat: "object" },
+        { text: "маска", cat: "object" },
+        { text: "кондиционер", cat: "object" },
+        { text: "фен", cat: "object" },
+        { text: "завивать", cat: "action" }
+    ];
+
+    let selectedWord = null;
+    let remaining = 0;
+
+    function initGame() {
+        selectedWord = null;
+        document.getElementById('word-pile').innerHTML = "";
+        document.getElementById('content-action').innerHTML = "";
+        document.getElementById('content-object').innerHTML = "";
+        
+        const shuffled = [...vocabulary].sort(() => Math.random() - 0.5);
+        remaining = shuffled.length;
+        updateCounter();
+
+        shuffled.forEach(item => {
+            const div = document.createElement('div');
+            div.className = 'word-card';
+            div.innerText = item.text;
+            div.onclick = (e) => {
+                e.stopPropagation();
+                selectWord(div, item);
+            };
+            document.getElementById('word-pile').appendChild(div);
+        });
+    }
+
+    function selectWord(element, data) {
+        if(element.classList.contains('placed')) return;
+
+        document.querySelectorAll('.word-card').forEach(c => c.classList.remove('selected'));
+        element.classList.add('selected');
+        selectedWord = { element, data };
+
+        // Markiere Zonen visuell als bereit
+        document.querySelectorAll('.zone').forEach(z => z.classList.add('active-target'));
+    }
+
+    function handleZoneClick(zoneId) {
+        if (!selectedWord) return;
+
+        if (selectedWord.data.cat === zoneId) {
+            // Richtig
+            const targetContent = document.getElementById(`content-${zoneId}`);
+            const el = selectedWord.element;
+            
+            el.classList.remove('selected');
+            el.classList.add('placed');
+            el.onclick = null;
+            targetContent.appendChild(el);
+            
+            selectedWord = null;
+            remaining--;
+            document.querySelectorAll('.zone').forEach(z => z.classList.remove('active-target'));
+            updateCounter();
+        } else {
+            // Falsch
+            const el = selectedWord.element;
+            el.classList.add('shake');
+            el.style.borderColor = "var(--error-color)";
+            setTimeout(() => {
+                el.classList.remove('shake');
+                el.style.borderColor = "";
+            }, 400);
+        }
+    }
+
+    function updateCounter() {
+        const counter = document.getElementById('counter');
+        if (remaining === 0) {
+            counter.innerHTML = "🎉 Вы всё правильно распределили!";
+            counter.style.color = "var(--success-color)";
+        } else {
+            counter.innerText = `Осталось слов: ${remaining}`;
+            counter.style.color = "var(--text-color)";
+        }
+    }
+
+    function showSolution() {
+        // Alle Karten aus dem Pile holen
+        const cards = [...document.querySelectorAll('#word-pile .word-card')];
+        cards.forEach(card => {
+            const text = card.innerText;
+            const data = vocabulary.find(v => v.text === text);
+            const targetContent = document.getElementById(`content-${data.cat}`);
+            card.classList.add('placed');
+            targetContent.appendChild(card);
+        });
+        remaining = 0;
+        updateCounter();
+        document.querySelectorAll('.zone').forEach(z => z.classList.remove('active-target'));
+    }
+
+    // Klick außerhalb des Wortes hebt Auswahl auf
+    document.addEventListener('click', () => {
+        selectedWord = null;
+        document.querySelectorAll('.word-card').forEach(c => c.classList.remove('selected'));
+        document.querySelectorAll('.zone').forEach(z => z.classList.remove('active-target'));
+    });
+
+    initGame();
+</script>
+
+</body>
+</html>
