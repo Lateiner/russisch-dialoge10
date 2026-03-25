@@ -1,0 +1,390 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Vokabel-Lernkartei: В парикмахерской</title>
+    <style>
+        :root {
+            --bg-color: #f0fdf4;
+            --card-bg: #ffffff;
+            --primary-green: #22c55e;
+            --dark-green: #15803d;
+            --light-green: #dcfce7;
+            --text-color: #166534;
+            --shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+        }
+
+        * {
+            box-sizing: border-box;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        body {
+            font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            margin: 0;
+            padding: 20px;
+        }
+
+        .app-container {
+            width: 100%;
+            max-width: 600px;
+            text-align: center;
+        }
+
+        h1 {
+            margin-bottom: 10px;
+            font-size: 1.8rem;
+            color: var(--dark-green);
+        }
+
+        .progress-info {
+            margin-bottom: 20px;
+            font-weight: bold;
+            font-size: 1.1rem;
+            color: var(--dark-green);
+            background: var(--light-green);
+            display: inline-block;
+            padding: 5px 15px;
+            border-radius: 20px;
+        }
+
+        /* Flashcard Styles */
+        .card-container {
+            perspective: 1000px;
+            width: 100%;
+            height: 350px;
+            cursor: pointer;
+            margin-bottom: 30px;
+        }
+
+        .card {
+            position: relative;
+            width: 100%;
+            height: 100%;
+            text-align: center;
+            transition: transform 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+            transform-style: preserve-3d;
+            box-shadow: var(--shadow);
+            border-radius: 20px;
+        }
+
+        .card.is-flipped {
+            transform: rotateY(180deg);
+        }
+
+        .card-face {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            backface-visibility: hidden;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            padding: 30px;
+            border-radius: 20px;
+            background: var(--card-bg);
+            border: 4px solid var(--primary-green);
+        }
+
+        .card-back {
+            transform: rotateY(180deg);
+            background-color: var(--light-green);
+        }
+
+        .vocab-text {
+            font-size: 2.2rem;
+            font-weight: bold;
+            word-wrap: break-word;
+            max-width: 100%;
+        }
+
+        .lang-label {
+            font-size: 0.8rem;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            color: var(--primary-green);
+            margin-bottom: 15px;
+            position: absolute;
+            top: 20px;
+        }
+
+        /* Controls */
+        .controls-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+
+        .nav-controls {
+            display: flex;
+            justify-content: space-between;
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+
+        button {
+            padding: 12px 20px;
+            border: none;
+            border-radius: 12px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.2s;
+            font-size: 1rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background-color: var(--primary-green);
+            color: white;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+
+        button:hover {
+            background-color: var(--dark-green);
+            transform: translateY(-2px);
+        }
+
+        button:active {
+            transform: translateY(0);
+        }
+
+        button.secondary {
+            background-color: var(--light-green);
+            color: var(--dark-green);
+        }
+
+        button.secondary:hover {
+            background-color: #bbf7d0;
+        }
+
+        .full-width {
+            grid-column: span 2;
+        }
+
+        .hint {
+            font-size: 0.85rem;
+            color: var(--dark-green);
+            opacity: 0.7;
+            margin-top: 10px;
+        }
+
+        /* Responsive Anpassung */
+        @media (max-width: 480px) {
+            .card-container { height: 300px; }
+            .vocab-text { font-size: 1.8rem; }
+            h1 { font-size: 1.5rem; }
+        }
+    </style>
+</head>
+<body>
+
+<div class="app-container">
+    <h1>В парикмахерской</h1>
+    <div class="progress-info" id="progress">1 / 55</div>
+
+    <div class="card-container" id="cardContainer" aria-label="Karteikarte, zum Umdrehen klicken">
+        <div class="card" id="card">
+            <div class="card-face card-front">
+                <div class="lang-label">Russisch</div>
+                <div class="vocab-text" id="frontText">парикма́херская</div>
+            </div>
+            <div class="card-face card-back">
+                <div class="lang-label">Deutsch</div>
+                <div class="vocab-text" id="backText">Friseursalon</div>
+            </div>
+        </div>
+    </div>
+
+    <div class="nav-controls">
+        <button id="prevBtn" style="flex: 1;">&larr; Vorherige</button>
+        <button id="nextBtn" style="flex: 1;">Nächste &rarr;</button>
+    </div>
+
+    <div class="controls-grid">
+        <button id="shuffleBtn" class="secondary">🔀 Mischen</button>
+        <button id="startBtn" class="secondary">🏠 An den Anfang</button>
+    </div>
+
+    <div class="hint">Tipp: Pfeiltasten zum Navigieren, Leertaste zum Umdrehen</div>
+</div>
+
+<script>
+    // Die Vokabelliste
+    const rawData = [
+        ["парикма́херская", "Friseursalon"],
+        ["барбершо́п", "Barbershop"],
+        ["парикма́хер", "Friseur"],
+        ["ба́рбер", "Barber"],
+        ["во́лосы", "Haare"],
+        ["стри́жка", "Haarschnitt"],
+        ["стричь / постри́чь", "(Haare) schneiden"],
+        ["стри́чься / постри́чься", "sich die Haare schneiden lassen"],
+        ["чёлка", "Pony"],
+        ["ко́нчики", "Spitzen"],
+        ["подра́внивать / подровня́ть", "beischneiden / begradigen"],
+        ["каре́", "Bob-Haarschnitt"],
+        ["пи́кси", "Pixie-Haarschnitt"],
+        ["кра́сить / покра́сить", "färben"],
+        ["кра́ситься / покра́ситься", "sich (die Haare) färben lassen"],
+        ["окра́шивание", "Färbung"],
+        ["кашта́новый", "kastanienbraun"],
+        ["тони́рование", "Tönung"],
+        ["мели́рование", "Strähnchen"],
+        ["укла́дка", "Styling"],
+        ["причёска", "Frisur"],
+        ["зави́вка", "Dauerwelle / Eindrehen"],
+        ["завива́ть / зави́ть", "(Haare) locken"],
+        ["ло́коны", "Locken"],
+        ["выпрямле́ние", "Glättung"],
+        ["выпрямля́ть / выпрями́ть", "glätten"],
+        ["прямы́е во́лосы", "glatte Haare"],
+        ["мыть / помы́ть", "waschen"],
+        ["голова́", "Kopf"],
+        ["шампу́нь", "Shampoo"],
+        ["кондиционе́р", "Spülung / Conditioner"],
+        ["ма́ска", "Haarmaske"],
+        ["высу́шивать / вы́сушить", "trocknen / föhnen"],
+        ["запи́сываться / записа́ться", "einen Termin vereinbaren / sich eintragen lassen"],
+        ["за́пись", "Termin / Eintragung"],
+        ["пали́тра", "Palette / Farbkarte"],
+        ["маши́нка", "Haarschneidemaschine"],
+        ["виски́", "Schläfen"],
+        ["брить / побри́ть", "rasieren"],
+        ["бри́ться / побри́ться", "sich rasieren"],
+        ["на́лысо", "kahl / auf Glatze"],
+        ["борода́", "Bart"],
+        ["усы́", "Schnurrbart"],
+        ["сбрива́ть / сбрить", "abrasieren"],
+        ["но́жницы", "Schere"],
+        ["фе́н", "Föhn"],
+        ["расчёска", "Kamm / Bürste"],
+        ["зе́ркало", "Spiegel"],
+        ["ра́ковина", "Waschbecken"],
+        ["выбира́ть / вы́брать", "auswählen"],
+        ["приноси́ть / принести́", "bringen"],
+        ["наноси́ть / нанести́", "auftragen / aufbringen"],
+        ["предлага́ть / предложи́ть", "vorschlagen / anbieten"],
+        ["пока́зывать / показа́ть", "zeigen"],
+        ["свобо́дный", "frei"]
+    ];
+
+    let deck = [...rawData];
+    let currentIndex = 0;
+
+    const card = document.getElementById('card');
+    const frontText = document.getElementById('frontText');
+    const backText = document.getElementById('backText');
+    const progress = document.getElementById('progress');
+    const nextBtn = document.getElementById('nextBtn');
+    const prevBtn = document.getElementById('prevBtn');
+    const shuffleBtn = document.getElementById('shuffleBtn');
+    const startBtn = document.getElementById('startBtn');
+
+    // Karte aktualisieren
+    function updateCard() {
+        // Zuerst zurückdrehen, falls sie gedreht war
+        card.classList.remove('is-flipped');
+        
+        // Kleine Verzögerung für den Textwechsel, damit man es beim Zurückdrehen nicht sieht
+        setTimeout(() => {
+            const currentVocab = deck[currentIndex];
+            frontText.innerText = currentVocab[0];
+            backText.innerText = currentVocab[1];
+            
+            // Schriftgröße anpassen
+            adjustFontSize(frontText);
+            adjustFontSize(backText);
+            
+            progress.innerText = `${currentIndex + 1} / ${deck.length}`;
+        }, 150);
+    }
+
+    function adjustFontSize(element) {
+        const length = element.innerText.length;
+        if (length > 40) {
+            element.style.fontSize = "1.2rem";
+        } else if (length > 25) {
+            element.style.fontSize = "1.5rem";
+        } else {
+            element.style.fontSize = "2.2rem";
+        }
+    }
+
+    // Funktionen
+    function flipCard() {
+        card.classList.toggle('is-flipped');
+    }
+
+    function nextCard() {
+        if (currentIndex < deck.length - 1) {
+            currentIndex++;
+            updateCard();
+        } else {
+            // Optional: Zum Anfang springen
+            currentIndex = 0;
+            updateCard();
+        }
+    }
+
+    function prevCard() {
+        if (currentIndex > 0) {
+            currentIndex--;
+            updateCard();
+        }
+    }
+
+    function shuffleDeck() {
+        for (let i = deck.length - 1; i > 0; i--) {
+            const j = Math.floor(Math.random() * (i + 1));
+            [deck[i], deck[j]] = [deck[j], deck[i]];
+        }
+        currentIndex = 0;
+        updateCard();
+    }
+
+    function goToStart() {
+        currentIndex = 0;
+        updateCard();
+    }
+
+    // Event Listener Buttons
+    card.addEventListener('click', flipCard);
+    nextBtn.addEventListener('click', nextCard);
+    prevBtn.addEventListener('click', prevCard);
+    shuffleBtn.addEventListener('click', shuffleDeck);
+    startBtn.addEventListener('click', goToStart);
+
+    // Tastatursteuerung
+    document.addEventListener('keydown', (e) => {
+        switch(e.key) {
+            case ' ':
+            case 'Enter':
+                e.preventDefault(); // Verhindert Scrollen bei Leertaste
+                flipCard();
+                break;
+            case 'ArrowRight':
+                nextCard();
+                break;
+            case 'ArrowLeft':
+                prevCard();
+                break;
+            case 'Home':
+                goToStart();
+                break;
+        }
+    });
+
+    // Initialisierung
+    updateCard();
+</script>
+
+</body>
+</html>
