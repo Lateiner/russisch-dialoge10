@@ -1,0 +1,263 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Entscheidungs-Dialog: В парикмахерской</title>
+    <style>
+        :root {
+            --friseur-color: #edf2f7;
+            --kunde-color: #4a90e2;
+            --bg-color: #f7fafc;
+            --text-dark: #2d3748;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: var(--bg-color);
+            margin: 0;
+            display: flex;
+            justify-content: center;
+            padding: 10px;
+        }
+
+        .container {
+            width: 100%;
+            max-width: 600px;
+            background: white;
+            border-radius: 15px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+            display: flex;
+            flex-direction: column;
+            height: 90vh;
+            overflow: hidden;
+        }
+
+        /* Header */
+        .header {
+            background: var(--kunde-color);
+            color: white;
+            padding: 15px;
+            text-align: center;
+            font-weight: bold;
+            font-size: 1.2rem;
+        }
+
+        /* Chat-Bereich */
+        #chat-window {
+            flex: 1;
+            padding: 15px;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            background: #ffffff;
+        }
+
+        .bubble {
+            max-width: 80%;
+            padding: 10px 15px;
+            border-radius: 15px;
+            font-size: 1rem;
+            line-height: 1.4;
+            position: relative;
+            animation: fadeIn 0.3s ease-in;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .bubble.friseur {
+            align-self: flex-start;
+            background-color: var(--friseur-color);
+            color: var(--text-dark);
+            border-bottom-left-radius: 2px;
+        }
+
+        .bubble.kunde {
+            align-self: flex-end;
+            background-color: var(--kunde-color);
+            color: white;
+            border-bottom-right-radius: 2px;
+        }
+
+        .speaker-name {
+            font-size: 0.75rem;
+            margin-bottom: 4px;
+            font-weight: bold;
+            display: block;
+        }
+
+        /* Aktions-Bereich (Buttons) */
+        #action-area {
+            padding: 15px;
+            background: #f8fafc;
+            border-top: 1px solid #e2e8f0;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .choice-btn {
+            background: white;
+            border: 2px solid var(--kunde-color);
+            color: var(--kunde-color);
+            padding: 12px;
+            border-radius: 10px;
+            cursor: pointer;
+            font-weight: bold;
+            font-size: 0.95rem;
+            transition: all 0.2s;
+            text-align: center;
+        }
+
+        .choice-btn:hover {
+            background: var(--kunde-color);
+            color: white;
+        }
+
+        .restart-btn {
+            background: #718096;
+            color: white;
+            border: none;
+            padding: 10px;
+            border-radius: 8px;
+            cursor: pointer;
+            margin-top: 10px;
+            display: none;
+        }
+
+        @media (max-width: 480px) {
+            .bubble { font-size: 0.9rem; }
+            .choice-btn { font-size: 0.85rem; padding: 10px; }
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <div class="header">Интерактивный диалог</div>
+    
+    <div id="chat-window">
+        <!-- Dialog erscheint hier -->
+    </div>
+
+    <div id="action-area">
+        <!-- Antwortmöglichkeiten erscheinen hier -->
+    </div>
+    <button id="restart-btn" class="restart-btn" onclick="startStory()">Начать сначала (Neu starten)</button>
+</div>
+
+<script>
+    const chatWindow = document.getElementById('chat-window');
+    const actionArea = document.getElementById('action-area');
+    const restartBtn = document.getElementById('restart-btn');
+
+    const story = {
+        start: {
+            text: "„Здравствуйте! Я Оксана. Что будем делать?“",
+            speaker: "Парикмахер",
+            options: [
+                { text: "„Мне нужно только постричься.“", next: "cut_only" },
+                { text: "„Я хочу постричься и покраситься.“", next: "cut_and_color" }
+            ]
+        },
+        cut_only: {
+            text: "„Хорошо. Какую стрижку вы хотите?“",
+            speaker: "Парикмахер",
+            options: [
+                { text: "„Я бы хотела каре.“", next: "wash" },
+                { text: "„Я бы хотела пикси.“", next: "wash" }
+            ]
+        },
+        cut_and_color: {
+            text: "„Хорошо. В какой цвет будем красить?“",
+            speaker: "Парикмахер",
+            options: [
+                { text: "„В каштановый, пожалуйста.“", next: "cut_only" },
+                { text: "„В чёрный, пожалуйста.“", next: "cut_only" }
+            ]
+        },
+        wash: {
+            text: "„Отлично. Давайте сначала помоем голову.“",
+            speaker: "Парикмахер",
+            options: [
+                { text: "„Да, конечно.“", next: "final_styling" }
+            ]
+        },
+        final_styling: {
+            text: "„Почти готово. Вы хотите прямые волосы или локоны?“",
+            speaker: "Парикмахер",
+            options: [
+                { text: "„Давайте сделаем локоны.“", next: "end" },
+                { text: "„Давайте выпрямим волосы.“", next: "end" }
+            ]
+        },
+        end: {
+            text: "„Готово! Вам нравится причёска?“",
+            speaker: "Парикмахер",
+            options: [
+                { text: "„Да, очень красиво! Спасибо!“", next: "finish" }
+            ]
+        },
+        finish: {
+            text: "„Пожалуйста! До свидания!“",
+            speaker: "Парикмахер",
+            options: []
+        }
+    };
+
+    function addBubble(text, speaker) {
+        const bubble = document.createElement('div');
+        bubble.className = `bubble ${speaker === 'Парикмахер' ? 'friseur' : 'kunde'}`;
+        
+        const name = document.createElement('span');
+        name.className = 'speaker-name';
+        name.innerText = speaker;
+        
+        const content = document.createElement('span');
+        content.innerText = text;
+        
+        bubble.appendChild(name);
+        bubble.appendChild(content);
+        chatWindow.appendChild(bubble);
+        chatWindow.scrollTop = chatWindow.scrollHeight;
+    }
+
+    function renderStep(stepId) {
+        const step = story[stepId];
+        addBubble(step.text, step.speaker);
+
+        actionArea.innerHTML = "";
+        
+        if (step.options.length === 0) {
+            restartBtn.style.display = "block";
+            return;
+        }
+
+        step.options.forEach(opt => {
+            const btn = document.createElement('div');
+            btn.className = 'choice-btn';
+            btn.innerText = opt.text;
+            btn.onclick = () => {
+                addBubble(opt.text, "Вы");
+                setTimeout(() => renderStep(opt.next), 600);
+            };
+            actionArea.appendChild(btn);
+        });
+    }
+
+    function startStory() {
+        chatWindow.innerHTML = "";
+        restartBtn.style.display = "none";
+        renderStep('start');
+    }
+
+    // Erster Start
+    startStory();
+</script>
+
+</body>
+</html>
