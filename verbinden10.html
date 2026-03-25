@@ -1,0 +1,259 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Satzhälften verbinden: В парикмахерской</title>
+    <style>
+        :root {
+            --primary-color: #4a90e2;
+            --success-color: #48bb78;
+            --error-color: #f56565;
+            --bg-color: #f7fafc;
+            --text-color: #2d3748;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, sans-serif;
+            background-color: var(--bg-color);
+            margin: 0;
+            display: flex;
+            justify-content: center;
+            padding: 10px;
+        }
+
+        .container {
+            width: 100%;
+            max-width: 800px;
+            background: white;
+            padding: 20px;
+            border-radius: 15px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+        }
+
+        h1 {
+            text-align: center;
+            color: var(--primary-color);
+            font-size: 1.4rem;
+            margin-bottom: 5px;
+        }
+
+        .instruction {
+            text-align: center;
+            font-size: 0.9rem;
+            color: #718096;
+            margin-bottom: 25px;
+        }
+
+        .game-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+            min-height: 480px;
+        }
+
+        .column {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .card {
+            background: #ffffff;
+            border: 2px solid #cbd5e0;
+            border-radius: 10px;
+            padding: 15px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            min-height: 45px;
+            display: flex;
+            align-items: center;
+            font-size: 1rem;
+            color: var(--text-color);
+            user-select: none;
+            touch-action: manipulation;
+        }
+
+        .card:hover:not(.hidden-match) {
+            border-color: var(--primary-color);
+            background-color: #f0f7ff;
+        }
+
+        .selected {
+            border-color: var(--primary-color);
+            background-color: #ebf8ff;
+            box-shadow: 0 0 10px rgba(74, 144, 226, 0.2);
+            transform: scale(1.02);
+        }
+
+        /* Paare verschwinden */
+        .hidden-match {
+            opacity: 0;
+            pointer-events: none;
+            transform: scale(0.9);
+        }
+
+        /* Paar-Farben für die Lösung */
+        .pair-0 { background-color: #FFADAD !important; border-color: #FF8585 !important; opacity: 1 !important; pointer-events: none; }
+        .pair-1 { background-color: #FFD6A5 !important; border-color: #FFBD73 !important; opacity: 1 !important; pointer-events: none; }
+        .pair-2 { background-color: #FDFFB6 !important; border-color: #F0F27F !important; opacity: 1 !important; pointer-events: none; }
+        .pair-3 { background-color: #CAFFBF !important; border-color: #97E68A !important; opacity: 1 !important; pointer-events: none; }
+        .pair-4 { background-color: #9BF6FF !important; border-color: #6AD4E0 !important; opacity: 1 !important; pointer-events: none; }
+        .pair-5 { background-color: #A0C4FF !important; border-color: #79A3E6 !important; opacity: 1 !important; pointer-events: none; }
+        .pair-6 { background-color: #BDB2FF !important; border-color: #9C8CFF !important; opacity: 1 !important; pointer-events: none; }
+        .pair-7 { background-color: #FFC6FF !important; border-color: #FF96FF !important; opacity: 1 !important; pointer-events: none; }
+
+        .controls {
+            display: flex;
+            gap: 10px;
+            margin-top: 30px;
+        }
+
+        button.btn {
+            flex: 1;
+            padding: 14px;
+            border: none;
+            border-radius: 8px;
+            font-weight: bold;
+            cursor: pointer;
+            font-size: 0.95rem;
+        }
+
+        .btn-sol { background: #718096; color: white; }
+        .btn-res { background: #e2e8f0; color: var(--text-color); }
+
+        #win-msg {
+            text-align: center;
+            margin-top: 15px;
+            font-weight: bold;
+            color: var(--success-color);
+            min-height: 24px;
+        }
+
+        @media (max-width: 600px) {
+            .game-grid { gap: 10px; }
+            .card { font-size: 0.85rem; padding: 10px; }
+            h1 { font-size: 1.2rem; }
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h1>Соедините части предложений</h1>
+    <p class="instruction">Klicken Sie links auf einen Anfang und rechts auf das passende Ende. Paare verschwinden!</p>
+    
+    <div class="game-grid">
+        <div class="column" id="col-left"></div>
+        <div class="column" id="col-right"></div>
+    </div>
+
+    <div id="win-msg"></div>
+
+    <div class="controls">
+        <button class="btn btn-sol" onclick="showSolution()">Lösung anzeigen</button>
+        <button class="btn btn-res" onclick="initGame()">Neu starten</button>
+    </div>
+</div>
+
+<script>
+    const sentenceData = [
+        { id: 0, start: "Я хочу записаться...", end: "...на стрижку и окрашивание." },
+        { id: 1, start: "Мне нужно сделать...", end: "...стрижку." },
+        { id: 2, start: "Я бы хотела...", end: "...каре." },
+        { id: 3, start: "Давайте сначала...", end: "...помоем голову." },
+        { id: 4, start: "Я также хочу покраситься...", end: "...в каштановый цвет." },
+        { id: 5, start: "Я принесу вам...", end: "...палитру." },
+        { id: 6, start: "Вы хотите прямые волосы...", end: "...или локоны?" },
+        { id: 7, start: "Давайте сегодня...", end: "...выпрямим волосы." }
+    ];
+
+    let selectedLeft = null;
+    let selectedRight = null;
+    let matchesFound = 0;
+
+    function initGame() {
+        selectedLeft = null;
+        selectedRight = null;
+        matchesFound = 0;
+        document.getElementById('win-msg').innerText = "";
+        
+        const colLeft = document.getElementById('col-left');
+        const colRight = document.getElementById('col-right');
+
+        const leftItems = [...sentenceData].sort(() => Math.random() - 0.5);
+        const rightItems = [...sentenceData].sort(() => Math.random() - 0.5);
+
+        colLeft.innerHTML = leftItems.map(item => `
+            <div class="card" id="left-${item.id}" onclick="handleSelect(this, 'left', ${item.id})">${item.start}</div>
+        `).join('');
+
+        colRight.innerHTML = rightItems.map(item => `
+            <div class="card" id="right-${item.id}" onclick="handleSelect(this, 'right', ${item.id})">${item.end}</div>
+        `).join('');
+    }
+
+    function handleSelect(element, side, id) {
+        if (element.classList.contains('hidden-match')) return;
+
+        if (side === 'left') {
+            document.querySelectorAll('#col-left .card').forEach(c => c.classList.remove('selected'));
+            selectedLeft = { element, id };
+        } else {
+            document.querySelectorAll('#col-right .card').forEach(c => c.classList.remove('selected'));
+            selectedRight = { element, id };
+        }
+        element.classList.add('selected');
+
+        if (selectedLeft && selectedRight) {
+            if (selectedLeft.id === selectedRight.id) {
+                // Richtig
+                const el1 = selectedLeft.element;
+                const el2 = selectedRight.element;
+                
+                setTimeout(() => {
+                    el1.classList.add('hidden-match');
+                    el2.classList.add('hidden-match');
+                    matchesFound++;
+                    if (matchesFound === sentenceData.length) {
+                        document.getElementById('win-msg').innerText = "🎉 Отлично! Вы собрали все предложения!";
+                    }
+                }, 300);
+            } else {
+                // Falsch
+                const el1 = selectedLeft.element;
+                const el2 = selectedRight.element;
+                el1.style.borderColor = "var(--error-color)";
+                el2.style.borderColor = "var(--error-color)";
+                setTimeout(() => {
+                    el1.classList.remove('selected');
+                    el2.classList.remove('selected');
+                    el1.style.borderColor = "";
+                    el2.style.borderColor = "";
+                }, 500);
+            }
+            selectedLeft = null;
+            selectedRight = null;
+        }
+    }
+
+    function showSolution() {
+        sentenceData.forEach(item => {
+            const lCard = document.getElementById(`left-${item.id}`);
+            const rCard = document.getElementById(`right-${item.id}`);
+            
+            lCard.classList.remove('hidden-match', 'selected');
+            rCard.classList.remove('hidden-match', 'selected');
+            
+            const colorClass = `pair-${item.id}`;
+            lCard.classList.add(colorClass);
+            rCard.classList.add(colorClass);
+        });
+        document.getElementById('win-msg').innerText = "Lösung wird angezeigt.";
+    }
+
+    initGame();
+</script>
+
+</body>
+</html>
